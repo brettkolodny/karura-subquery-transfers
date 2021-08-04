@@ -1,0 +1,34 @@
+type Account @entity {
+  id: ID!
+  extrinsics: [Extrinsic] @derivedFrom(field: "sender")
+  transferIn: [Transfer] @derivedFrom(field: "to")
+  transferOut: [Transfer] @derivedFrom(field: "from")
+}
+
+type Extrinsic @entity {
+  id: ID!
+  txId: String
+  sender: Account
+  section: String
+  method: String
+  argsNames: [String]
+  args: [String]
+  success: Boolean
+  events: [Event] @derivedFrom(field: "tx")
+}
+
+type Event @entity {
+  id: ID!
+  section: String
+  method: String
+  tx: Extrinsic
+}
+
+type Transfer @entity {
+  id: ID!
+  to: Account
+  from: Account
+  amount: String
+  currencyId: String
+  txHash: String
+}
