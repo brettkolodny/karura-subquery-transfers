@@ -1,7 +1,6 @@
 import {
   SubstrateExtrinsic,
   SubstrateEvent,
-  SubstrateBlock,
 } from "@subql/types";
 import { Extrinsic, Account, Transfer, Event } from "../types";
 
@@ -69,17 +68,12 @@ export async function handleCurrencyTransfer(
 }
 
 export async function handleEvent(event: SubstrateEvent): Promise<void> {
+  if (!event.phase.isApplyExtrinsic) return;
+
   const eventRecord = new Event(`${event.block.block.header.number.toNumber()}-${event.idx}`);
 
   await handleCurrencyDeposit(event);
   await handleCurrencyTransfer(event);
-
-  logger.info(`
-  event: ${event.event.section}.${event.event.method}
-  name: ${event.event.meta.name}
-  args: ${event.event.meta.args}
-  data: ${event.event.data.toString()}\n
-  `)
 
   eventRecord.method = event.event.method;
   eventRecord.section = event.event.section;
@@ -98,7 +92,6 @@ export async function handleCall(extrinsic: SubstrateExtrinsic): Promise<void> {
   );
   txRecord.section = extrinsic.extrinsic.method.section;
   txRecord.method = extrinsic.extrinsic.method.meta.name.toString();
-  logger.info(`argsMeta: ${extrinsic.extrinsic.meta.args}`);
   txRecord.args = extrinsic.extrinsic.args.map((arg) => arg.toString());
   txRecord.argsNames = extrinsic.extrinsic.meta.args.map((arg) =>
     arg.name.toString()
