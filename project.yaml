@@ -6514,8 +6514,6 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    filter:
-        specName: karura
     startBlock: 0
     mapping:
       handlers:
