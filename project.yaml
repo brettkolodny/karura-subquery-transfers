@@ -313,7 +313,7 @@ dataSources:
     kind: substrate/Runtime
     filter:
       specName: karura
-    startBlock: 0
+    startBlock: 1
     mapping:
       handlers:
         - handler: handleCall
