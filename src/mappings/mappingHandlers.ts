@@ -3,6 +3,7 @@ import {
   SubstrateEvent,
 } from "@subql/types";
 import { Extrinsic, Account, Transfer, Event } from "../types";
+import { Block } from '@polkadot/types/interfaces/runtime';
 
 async function createAccount(address: string): Promise<string> {
   let accountRecord = await Account.get(address);
@@ -36,6 +37,7 @@ export async function handleCurrencyDeposit(
   depositRecord.amount = amount.toString();
   depositRecord.toId = await createAccount(who.toString());
   depositRecord.txHash = event.extrinsic.extrinsic.hash.toString();
+  depositRecord.timestamp = event.extrinsic.block.timestamp;
 
   await depositRecord.save();
 }
@@ -63,6 +65,7 @@ export async function handleCurrencyTransfer(
   transferRecord.toId = await createAccount(to.toString());
   transferRecord.fromId = await createAccount(from.toString());
   transferRecord.txHash = event.extrinsic.extrinsic.hash.toString();
+  transferRecord.timestamp = event.extrinsic.block.timestamp;
 
   await transferRecord.save();
 }
@@ -98,6 +101,7 @@ export async function handleCall(extrinsic: SubstrateExtrinsic): Promise<void> {
   );
   txRecord.success = extrinsic.success;
   txRecord.txId = `${extrinsic.block.block.header.number}-${extrinsic.idx}`;
+  txRecord.timestamp = extrinsic.block.timestamp;
 
   await txRecord.save();
 }
