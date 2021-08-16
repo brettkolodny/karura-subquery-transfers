@@ -4,7 +4,6 @@ repository: ""
 schema: ./schema.graphql
 network:
   endpoint: wss://karura.polkawallet.io
-  dictionary: https://api.subquery.network/sq/AcalaNetwork/karura-dictionary
   types:
     CallOf: Call
     DispatchTime:
@@ -311,8 +310,6 @@ network:
 dataSources:
   - name: main
     kind: substrate/Runtime
-    filter:
-      specName: karura
     startBlock: 1
     mapping:
       handlers:
