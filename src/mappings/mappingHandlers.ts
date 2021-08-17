@@ -1,9 +1,6 @@
-import {
-  SubstrateExtrinsic,
-  SubstrateEvent,
-} from "@subql/types";
+import { SubstrateExtrinsic, SubstrateEvent } from "@subql/types";
+import { Codec } from "@polkadot/types/types";
 import { Extrinsic, Account, Transfer, Event } from "../types";
-import { Block } from '@polkadot/types/interfaces/runtime';
 
 async function createAccount(address: string): Promise<string> {
   let accountRecord = await Account.get(address);
@@ -15,10 +12,25 @@ async function createAccount(address: string): Promise<string> {
   return address;
 }
 
+function getToken(currencyId: Codec): string {
+  const currencyJson = JSON.parse(currencyId.toString());
+
+  if (currencyJson.token) return currencyJson.token;
+  if (currencyJson.dexShare) {
+    const [tokenA, tokenB] = currencyJson.dexShare;
+    return `${tokenA.token}<>${tokenB.token} LP`;
+  }
+
+  return "??";
+}
+
 export async function handleCurrencyDeposit(
   event: SubstrateEvent
 ): Promise<void> {
-  if (event.event.section != "currencies" || event.event.method != "Deposited") {
+  if (
+    event.event.section != "currencies" ||
+    event.event.method != "Deposited"
+  ) {
     return;
   }
 
@@ -28,12 +40,10 @@ export async function handleCurrencyDeposit(
     },
   } = event;
 
-  const currencyJson = JSON.parse(currency_id.toString());
-
   const depositRecord = new Transfer(
-    `${event.block.block.header.number.toNumber()}-${event.idx}`
+    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.index.toString())}`
   );
-  depositRecord.currencyId = currencyJson.token;
+  depositRecord.currencyId = getToken(currency_id);
   depositRecord.amount = amount.toString();
   depositRecord.toId = await createAccount(who.toString());
   depositRecord.txHash = event.extrinsic.extrinsic.hash.toString();
@@ -45,7 +55,10 @@ export async function handleCurrencyDeposit(
 export async function handleCurrencyTransfer(
   event: SubstrateEvent
 ): Promise<void> {
-  if (event.event.section != "currencies" || event.event.method != "Transferred") {
+  if (
+    event.event.section != "currencies" ||
+    event.event.method != "Transferred"
+  ) {
     return;
   }
 
@@ -55,12 +68,10 @@ export async function handleCurrencyTransfer(
     },
   } = event;
 
-  const currency_json = JSON.parse(currency_id.toString());
-
   const transferRecord = new Transfer(
-    `${event.block.block.header.number.toNumber()}-${event.idx}`
+    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.index.toString())}`
   );
-  transferRecord.currencyId = currency_json.token;
+  transferRecord.currencyId = getToken(currency_id);
   transferRecord.amount = amount.toString();
   transferRecord.toId = await createAccount(to.toString());
   transferRecord.fromId = await createAccount(from.toString());
@@ -73,22 +84,60 @@ export async function handleCurrencyTransfer(
 export async function handleEvent(event: SubstrateEvent): Promise<void> {
   if (!event.phase.isApplyExtrinsic) return;
 
-  const eventRecord = new Event(`${event.block.block.header.number.toNumber()}-${event.idx}`);
+  const eventRecord = new Event(
+    `${event.block.block.header.number.toNumber()}-${event.idx}`
+  );
 
   await handleCurrencyDeposit(event);
   await handleCurrencyTransfer(event);
 
   eventRecord.method = event.event.method;
   eventRecord.section = event.event.section;
-  eventRecord.txId = event.extrinsic ? event.extrinsic.extrinsic.hash.toString() : null;
+  eventRecord.txId = event.extrinsic
+    ? event.extrinsic.extrinsic.hash.toString()
+    : null;
 
   await eventRecord.save();
 }
 
-export async function handleCall(extrinsic: SubstrateExtrinsic): Promise<void> {
-  const txRecord = new Extrinsic(
-    `${extrinsic.extrinsic.hash.toString()}`
+export async function handleBalanceTransfer(
+  extrinsic: SubstrateExtrinsic
+): Promise<void> {
+  if (extrinsic.extrinsic.method.section != "balances") return;
+  if (!extrinsic.success) return;
+
+  const transferEvent = extrinsic.events.find(
+    (e) => e.event.section === "balances" && e.event.method === "Transfer"
   );
+
+  if (transferEvent == undefined) return;
+
+  const {
+    event: {
+      data: [from, to, value],
+    },
+  } = transferEvent;
+
+  const transferRecord = new Transfer(
+    `${extrinsic.block.block.header.number.toNumber()}-${
+      parseInt(transferEvent.event.index.toString())
+    }`
+  );
+
+  transferRecord.amount = value.toString();
+  transferRecord.currencyId = "KAR";
+  transferRecord.toId = await createAccount(to.toString());
+  transferRecord.fromId = await createAccount(from.toString());
+  transferRecord.txHash = extrinsic.extrinsic.hash.toString();
+  transferRecord.timestamp = extrinsic.block.timestamp;
+
+  await transferRecord.save();
+}
+
+export async function handleCall(extrinsic: SubstrateExtrinsic): Promise<void> {
+  const txRecord = new Extrinsic(`${extrinsic.extrinsic.hash.toString()}`);
+
+  await handleBalanceTransfer(extrinsic);
 
   txRecord.senderId = await createAccount(
     extrinsic.extrinsic.signer.toString()
