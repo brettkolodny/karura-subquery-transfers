@@ -41,7 +41,7 @@ export async function handleCurrencyDeposit(
   } = event;
 
   const depositRecord = new Transfer(
-    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.index.toString())}`
+    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.hash.toString())}`
   );
   depositRecord.currencyId = getToken(currency_id);
   depositRecord.amount = amount.toString();
@@ -69,7 +69,7 @@ export async function handleCurrencyTransfer(
   } = event;
 
   const transferRecord = new Transfer(
-    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.index.toString())}`
+    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.hash.toString())}`
   );
   transferRecord.currencyId = getToken(currency_id);
   transferRecord.amount = amount.toString();
@@ -117,12 +117,13 @@ export async function handleBalanceTransfer(
       data: [from, to, value],
     },
   } = transferEvent;
-
+  
   const transferRecord = new Transfer(
     `${extrinsic.block.block.header.number.toNumber()}-${
-      parseInt(transferEvent.event.index.toString())
+      parseInt(transferEvent.event.hash.toString())
     }`
   );
+
 
   transferRecord.amount = value.toString();
   transferRecord.currencyId = "KAR";
