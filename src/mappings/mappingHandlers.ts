@@ -1,5 +1,4 @@
 import { SubstrateExtrinsic, SubstrateEvent } from "@subql/types";
-import { EventRecord } from "@polkadot/types/interfaces";
 import { Codec } from "@polkadot/types/types";
 import { Extrinsic, Account, Transfer, Event } from "../types";
 
