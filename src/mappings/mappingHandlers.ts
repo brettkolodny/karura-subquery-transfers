@@ -1,4 +1,5 @@
 import { SubstrateExtrinsic, SubstrateEvent } from "@subql/types";
+import { EventRecord } from "@polkadot/types/interfaces";
 import { Codec } from "@polkadot/types/types";
 import { Extrinsic, Account, Transfer, Event } from "../types";
 
@@ -41,13 +42,13 @@ export async function handleCurrencyDeposit(
   } = event;
 
   const depositRecord = new Transfer(
-    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.index.toString())}`
+    `${event.block.block.header.number.toNumber()}-${event.idx}`
   );
   depositRecord.currencyId = getToken(currency_id);
   depositRecord.amount = amount.toString();
   depositRecord.toId = await createAccount(who.toString());
   depositRecord.txHash = event.extrinsic.extrinsic.hash.toString();
-  depositRecord.timestamp = event.extrinsic.block.timestamp;
+  depositRecord.timestamp = BigInt(event.extrinsic.block.timestamp.getTime());
 
   await depositRecord.save();
 }
@@ -69,14 +70,14 @@ export async function handleCurrencyTransfer(
   } = event;
 
   const transferRecord = new Transfer(
-    `${event.block.block.header.number.toNumber()}-${parseInt(event.event.index.toString())}`
+    `${event.block.block.header.number.toNumber()}-${event.idx}`
   );
   transferRecord.currencyId = getToken(currency_id);
   transferRecord.amount = amount.toString();
   transferRecord.toId = await createAccount(to.toString());
   transferRecord.fromId = await createAccount(from.toString());
   transferRecord.txHash = event.extrinsic.extrinsic.hash.toString();
-  transferRecord.timestamp = event.extrinsic.block.timestamp;
+  transferRecord.timestamp = BigInt(event.extrinsic.block.timestamp.getTime());
 
   await transferRecord.save();
 }
@@ -106,9 +107,15 @@ export async function handleBalanceTransfer(
   if (extrinsic.extrinsic.method.section != "balances") return;
   if (!extrinsic.success) return;
 
-  const transferEvent = extrinsic.events.find(
-    (e) => e.event.section === "balances" && e.event.method === "Transfer"
-  );
+  let index = 0;
+  const transferEvent = extrinsic.events.find((e, i) => {
+    if (e.event.section === "balances" && e.event.method === "Transfer") {
+      index = i;
+      return true;
+    } else {
+      return false;
+    }
+  });
 
   if (transferEvent == undefined) return;
 
@@ -119,9 +126,7 @@ export async function handleBalanceTransfer(
   } = transferEvent;
 
   const transferRecord = new Transfer(
-    `${extrinsic.block.block.header.number.toNumber()}-${
-      parseInt(transferEvent.event.index.toString())
-    }`
+    `${extrinsic.block.block.header.number.toNumber()}-${index}`
   );
 
   transferRecord.amount = value.toString();
@@ -129,7 +134,7 @@ export async function handleBalanceTransfer(
   transferRecord.toId = await createAccount(to.toString());
   transferRecord.fromId = await createAccount(from.toString());
   transferRecord.txHash = extrinsic.extrinsic.hash.toString();
-  transferRecord.timestamp = extrinsic.block.timestamp;
+  transferRecord.timestamp = BigInt(extrinsic.block.timestamp.getTime());
 
   await transferRecord.save();
 }
@@ -150,7 +155,7 @@ export async function handleCall(extrinsic: SubstrateExtrinsic): Promise<void> {
   );
   txRecord.success = extrinsic.success;
   txRecord.txId = `${extrinsic.block.block.header.number}-${extrinsic.idx}`;
-  txRecord.timestamp = extrinsic.block.timestamp;
+  txRecord.timestamp = BigInt(extrinsic.block.timestamp.getTime());
 
   await txRecord.save();
 }

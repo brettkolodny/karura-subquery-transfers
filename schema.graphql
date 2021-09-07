@@ -15,7 +15,7 @@ type Extrinsic @entity {
   args: [String]
   success: Boolean
   events: [Event] @derivedFrom(field: "tx")
-  timestamp: Date
+  timestamp: BigInt
 }
 
 type Event @entity {
@@ -32,5 +32,5 @@ type Transfer @entity {
   amount: String
   currencyId: String
   txHash: String
-  timestamp: Date
+  timestamp: BigInt
 }
