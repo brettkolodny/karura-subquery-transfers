@@ -17,7 +17,12 @@ function getToken(currencyId: Codec): string {
 
   if (currencyJson.token) return currencyJson.token;
   if (currencyJson.dexShare) {
-    const [tokenA, tokenB] = currencyJson.dexShare;
+    let [tokenA, tokenB] = currencyJson.dexShare;
+    if (tokenB === "fa://0") {
+      tokenB = {
+        token: "RMRK",
+      };
+    }
     return `${tokenA.token}<>${tokenB.token} LP`;
   }
 
