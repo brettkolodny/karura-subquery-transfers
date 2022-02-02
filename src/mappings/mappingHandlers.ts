@@ -12,21 +12,25 @@ async function createAccount(address: string): Promise<string> {
   return address;
 }
 
+function jsonToTokenName(currencyJson: any): string {
+  if (currencyJson.token) {
+    return currencyJson.token;
+  } else if (currencyJson["foreignAsset"] != undefined) {
+    if (currencyJson.foreignAsset === 0) {
+      return "RMRK";
+    }
+  } else if (currencyJson.dexShare) {
+    return `${jsonToTokenName[0]}<>${jsonToTokenName[1]} LP`;
+  }
+
+  logger.info(JSON.stringify(currencyJson));
+  return "??";
+}
+
 function getToken(currencyId: Codec): string {
   const currencyJson = JSON.parse(currencyId.toString());
 
-  if (currencyJson.token) return currencyJson.token;
-  if (currencyJson.dexShare) {
-    let [tokenA, tokenB] = currencyJson.dexShare;
-    if (tokenB === "fa://0") {
-      tokenB = {
-        token: "RMRK",
-      };
-    }
-    return `${tokenA.token}<>${tokenB.token} LP`;
-  }
-
-  return "??";
+  return jsonToTokenName(currencyJson);
 }
 
 export async function handleCurrencyDeposit(
