@@ -20,10 +20,12 @@ function jsonToTokenName(currencyJson: any): string {
       return "RMRK";
     }
   } else if (currencyJson.dexShare) {
-    return `${jsonToTokenName[0]}<>${jsonToTokenName[1]} LP`;
+    return `${jsonToTokenName(currencyJson.dexShare[0])}<>${jsonToTokenName(
+      currencyJson.dexShare[1]
+    )} LP`;
   }
 
-  logger.info(JSON.stringify(currencyJson));
+  logger.info(`No Name: ${JSON.stringify(currencyJson)}`);
   return "??";
 }
 
